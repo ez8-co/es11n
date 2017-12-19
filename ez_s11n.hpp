@@ -1,4 +1,4 @@
-#include "../xpjson.hpp"
+#include "xpjson.hpp"
 #include <list>
 #include <deque>
 #include <set>
@@ -17,6 +17,11 @@ using namespace std;
 
 #define _AS_ |
 
+#define EZ_S11N_CUSTOM_CTOR_BASE EZ_S11N::custom_ctor_base
+#define EZ_S11N_CUSTOM_CTOR(arglist) public:\
+	template<class T>\
+	static T s11n_custom_ctor() { return T arglist; }
+
 #define EZ_S11N(members)\
 	template<class char_t, class T> friend JSON::ValueT<char_t>& EZ_S11N::operator>>(JSON::ValueT<char_t>&, T&);\
 	template<class char_t, class T> friend JSON::ValueT<char_t>& EZ_S11N::operator<<(JSON::ValueT<char_t>&, T&);\
@@ -27,6 +32,25 @@ using namespace std;
 namespace EZ_S11N
 {
 	using namespace JSON;
+
+	struct custom_ctor_base{};
+	template <typename Base, typename Derived>
+	class is_base_of
+	{
+	    template <typename T>
+	    static char helper(Derived, T);
+	    static int helper(Base, int);
+	    struct Conv {
+	        operator Derived();
+	        operator Base() const;
+	    };
+	public:
+	    static const bool value = sizeof(helper(Conv(), 0)) == 1;
+	};
+	template<class T, bool custom = false>
+	struct s11n_ctor { static T ctor() { return T(); } };
+	template<class T>
+	struct s11n_ctor<T, true> { static T ctor() { return T::template s11n_custom_ctor<T>(); } };
 
 	template<class char_t>
 	class Archive
@@ -218,7 +242,7 @@ namespace EZ_S11N
 	{\
 		if(in.type() == ARRAY) {\
 			for(int i = 0; i < in.a().size(); ++i) {\
-				T v;\
+				T v = s11n_ctor<T, is_base_of<custom_ctor_base, T>::value>::ctor();\
 				from_s11n(s, in.a()[i], v);\
 				cont.insert_method(v);\
 			}\
@@ -269,20 +293,16 @@ namespace EZ_S11N
 		return s;
 	}
 
-	template<class T> struct json_is_pointer_ :     detail::json_false_type {};
-	template<class T> struct json_is_pointer_<T*> : detail::json_true_type {};
-	template<class T> struct json_is_pointer :      json_is_pointer_<typename detail::json_remove_cv<T>::type> {};
-
 	template<class char_t, class T>
 	void to_s11n(Archive<char_t>& s, ValueT<char_t>& out, T*& ptr)
 	{
-		if(!json_is_pointer<T>::value && !ptr) return; to_s11n(s, out, *ptr);
+		if(!ptr) return; to_s11n(s, out, *ptr);
 	}
 
 	template<class char_t, class T>
 	void from_s11n(Archive<char_t>& s, ValueT<char_t>& in, T*& ptr)
 	{
-		if(!json_is_pointer<T>::value && !ptr) return; from_s11n(s, in, *ptr);
+		if(!ptr) return; from_s11n(s, in, *ptr);
 	}
 
 	template<class char_t, class T>
@@ -312,10 +332,11 @@ namespace EZ_S11N
 			for(typename ObjectT<char_t>::iterator it = in.o().begin(); it != in.o().end(); ++it) {\
 				ValueT<char_t> k_json;\
 				k_json.read(it->first.c_str(), it->first.length());\
-				K k;\
+				K k = s11n_ctor<K, is_base_of<custom_ctor_base, K>::value>::ctor();\
 				from_s11n(s, k_json, k);\
-				pair<typename spec_type<K, V>::iterator, bool> pb = cont.insert(JSON_MOVE(make_pair(k, V())));\
-				from_s11n(s, it->second, pb.first->second);\
+				V v = s11n_ctor<V, is_base_of<custom_ctor_base, V>::value>::ctor();\
+				from_s11n(s, it->second, v);\
+				cont.insert(JSON_MOVE(make_pair(k, v)));\
 			}\
 		}\
 	}\
