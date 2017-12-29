@@ -7,7 +7,7 @@ using namespace EZ_S11N;
 
 class Nested : EZ_S11N_CUSTOM_CTOR_BASE
 {
-	EZ_S11N_CUSTOM_CTOR((0));
+	EZ_S11N_CUSTOM_CTOR(0);
 
 public:
 	Nested(int64_t i) : x(i) {

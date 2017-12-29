@@ -1,7 +1,9 @@
 #include "xpjson.hpp"
+#include <vector>
 #include <list>
 #include <deque>
 #include <set>
+#include <map>
 #include <hash_set>
 #include <hash_map>
 #ifdef __XPJSON_SUPPORT_MOVE__
@@ -15,19 +17,22 @@ using namespace std;
 	using namespace stdext;
 #endif
 
+#define EZ_S11N_THREADSAFE_LOCK
+
 #define _AS_ |
 
 #define EZ_S11N_CUSTOM_CTOR_BASE EZ_S11N::custom_ctor_base
-#define EZ_S11N_CUSTOM_CTOR(arglist) public:\
+#define EZ_S11N_CUSTOM_CTOR_EX(statement) public:\
 	template<class T>\
-	static T s11n_custom_ctor() { return T arglist; }
+	static T s11n_custom_ctor() { statement }
+#define EZ_S11N_CUSTOM_CTOR(...) EZ_S11N_CUSTOM_CTOR_EX(return T(__VA_ARGS__);)
 
 #define EZ_S11N(members)\
 	template<class char_t, class T> friend JSON::ValueT<char_t>& EZ_S11N::operator>>(JSON::ValueT<char_t>&, T&);\
 	template<class char_t, class T> friend JSON::ValueT<char_t>& EZ_S11N::operator<<(JSON::ValueT<char_t>&, T&);\
 	template<class char_t, class T> friend JSON::ValueT<char_t>& EZ_S11N::operator>>(T&, JSON::ValueT<char_t>&);\
 	template<class char_t, class T> friend JSON::ValueT<char_t>& EZ_S11N::operator<<(T&, JSON::ValueT<char_t>&);\
-	template<class char_t> EZ_S11N::Archive<char_t>& serialize(EZ_S11N::Archive<char_t>& json_s11n) { json_s11n.push(#members); return json_s11n | members;}\
+	template<class char_t> EZ_S11N::Archive<char_t>& serialize(EZ_S11N::Archive<char_t>& json_s11n) { static EZ_S11N::Schema s(#members); json_s11n.schema(s); return json_s11n | members;}\
 
 namespace EZ_S11N
 {
@@ -35,7 +40,7 @@ namespace EZ_S11N
 
 	struct custom_ctor_base{};
 	template <typename Base, typename Derived>
-	class is_base_of
+	struct is_base_of
 	{
 	    template <typename T>
 	    static char helper(Derived, T);
@@ -44,7 +49,6 @@ namespace EZ_S11N
 	        operator Derived();
 	        operator Base() const;
 	    };
-	public:
 	    static const bool value = sizeof(helper(Conv(), 0)) == 1;
 	};
 	template<class T, bool custom = false>
@@ -52,74 +56,83 @@ namespace EZ_S11N
 	template<class T>
 	struct s11n_ctor<T, true> { static T ctor() { return T::template s11n_custom_ctor<T>(); } };
 
-	template<class char_t>
-	class Archive
+	struct Schema
 	{
-	public:
-		string trim(const string& str)
-		{
-		    string::size_type pos = str.find_first_not_of(" \t\r\n*&");
-		    if (pos == string::npos)
-		        return str;
-		    string::size_type pos2 = str.find_last_not_of(" \t\r\n");
-		    if (pos2 != string::npos)
-		        return str.substr(pos, pos2 - pos + 1);
-		    return str.substr(pos);
-		}
-		string remove(const string& str, const string& src)
-		{
+		string remove(const string& str) {
 		    string ret;
-		    string::size_type pos_begin = 0, pos = 0;
-		    while ((pos = str.find(src, pos_begin)) != string::npos) {
-		        ret.append(str.data() + pos_begin, pos - pos_begin);
-		        pos_begin = pos + 1;
+		    string::size_type from = 0, pos = 0;
+		    while ((pos = str.find("\\\n", from)) != string::npos) {
+		        ret.append(str.data() + from, pos - from);
+		        from = pos + 1;
 		    }
-		    if (pos_begin < str.length())
-		        ret.append(str.begin() + pos_begin, str.end());
+		    if (from < str.length())
+		        ret.append(str.begin() + from, str.end());
 		    return ret;
 		}
-		Archive(ValueT<char_t>& v, bool s) : _from(0), _v(v), _s(s) {}
-		void push(const string& s)
-		{
-			_arg_seq = remove(s, "\\\n");
+		Schema(const string& schema) {
+			EZ_S11N_THREADSAFE_LOCK
+
+		    string::size_type from = schema.find_first_not_of("|");
+		    string::size_type pos = 0;
+
+		    while (from != string::npos) {
+		    	string tmp;
+		        pos = schema.find("|", from);
+		        if (pos != string::npos) {
+		            tmp = schema.substr(from, pos - from);
+		            from = pos + 1;
+		        }
+		        else {
+		            tmp = schema.substr(from);
+		            from = pos;
+		        }
+
+				string::size_type left = tmp.find('\"');
+				if (left != string::npos) {
+					string::size_type right = tmp.rfind('\"');
+					tmp = remove(tmp.substr(left + 1, right - left - 1));
+				}
+				else {
+				    left = tmp.find_first_not_of(" \t\r\n*&");
+				    if (left != string::npos) {
+					    string::size_type right = tmp.find_last_not_of(" \t\r\n");
+					    if (right != string::npos)
+					        tmp = remove(tmp.substr(left, right - left + 1));
+					    else
+					    	tmp = remove(tmp.substr(left));
+					}
+					else
+					    tmp = remove(tmp);
+				}
+
+		        if (!tmp.empty()) {
+		            _schemas.push_back(tmp);
+		        }
+		    }
 		}
-		string next()
-		{
-			int end = _arg_seq.find('|', _from);
-			string s;
-			if(end == string::npos) {
-				s = _arg_seq.substr(_from);
-				_from = 0;
-				return beautify(s);
-			}
-			s = _arg_seq.substr(_from, end - _from);
-			_from = end + 1;
-			return beautify(s);
-		}
-		string beautify(const string& key)
-		{
-			int left = key.find('\"');
-			int right = key.rfind('\"');
-			return left != string::npos ? key.substr(left + 1, right - left - 1) : trim(key);
-		}
-		ValueT<char_t>& sub() {
-			return _v[next()];
-		}
-		ValueT<char_t>& v() {
-			return _v;
-		}
-		bool store() const {
-			return _s;
-		}
+		const string& index(int i) const { return _schemas[i]; }
 	private:
-		int _from;
-		string _arg_seq;
-		ValueT<char_t>& _v;
+		vector<string> _schemas;
+	};
+
+	template<class char_t>
+	struct Archive
+	{
+		Archive(ValueT<char_t>& v, bool s) : _s(s), _index(0), _schema(0), _v(v)  {}
+		void schema(const Schema& s) 	{ _schema = &s; }
+		string next()					{ return _schema->index(_index++); }
+		ValueT<char_t>& sub()			{ return _v[next()]; }
+		ValueT<char_t>& v()				{ return _v; }
+		bool store() const				{ return _s; }
+	private:
 		bool _s;
+		int _index;
+		const Schema* _schema;
+		ValueT<char_t>& _v;
 	};
 
 	template<class char_t, size_t M>
-	Archive<char_t>& operator _AS_(Archive<char_t>& s, const char (&v)[M]) { return s; }
+	Archive<char_t>& operator _AS_(Archive<char_t>& s, const char (&)[M]) { return s; }
 
 	template<class char_t, class T>
 	ValueT<char_t>& operator>>(ValueT<char_t>& in, T& v)
@@ -201,32 +214,32 @@ namespace EZ_S11N
 		v.serialize(sub);
 	}
 
-#define S11N_VALUE(type) \
+#define S11N_VALUE(type, default_value) \
 	template<class char_t> \
 	void to_s11n(Archive<char_t>& s, ValueT<char_t>& out, type& v) { out = v; }\
 	template<class char_t>\
-	void from_s11n(Archive<char_t>& s, ValueT<char_t>& in, type& v) { v = in.template get<type>(); }
+	void from_s11n(Archive<char_t>& s, ValueT<char_t>& in, type& v) { v = in.template get<type>(default_value); }
 
-	S11N_VALUE(unsigned char)
-	S11N_VALUE(signed char)
+	S11N_VALUE(unsigned char, 0)
+	S11N_VALUE(signed char, 0)
 #ifdef _NATIVE_WCHAR_T_DEFINED
-	S11N_VALUE(wchar_t)
+	S11N_VALUE(wchar_t, 0)
 #endif /* _NATIVE_WCHAR_T_DEFINED */
-	S11N_VALUE(unsigned short)
-	S11N_VALUE(signed short)
-	S11N_VALUE(unsigned int)
-	S11N_VALUE(signed int)
+	S11N_VALUE(unsigned short, 0)
+	S11N_VALUE(signed short, 0)
+	S11N_VALUE(unsigned int, 0)
+	S11N_VALUE(signed int, 0)
 #if (defined (__GNUC__) && !defined(__x86_64__)) || (defined(_WIN32) && !defined(_WIN64))
-	S11N_VALUE(unsigned long)
-	S11N_VALUE(signed long)
+	S11N_VALUE(unsigned long, 0)
+	S11N_VALUE(signed long, 0)
 #endif
-	S11N_VALUE(uint64_t)
-	S11N_VALUE(int64_t)
-	S11N_VALUE(float)
-	S11N_VALUE(double)
-	S11N_VALUE(long double)
-	S11N_VALUE(bool)
-	S11N_VALUE(JSON_TSTRING(char_t))
+	S11N_VALUE(uint64_t, 0)
+	S11N_VALUE(int64_t, 0)
+	S11N_VALUE(float, 0)
+	S11N_VALUE(double, 0)
+	S11N_VALUE(long double, 0)
+	S11N_VALUE(bool, 0)
+	S11N_VALUE(JSON_TSTRING(char_t), "")
 
 #define S11N_VALUE_ARRAY_CONT(spec_type, insert_method) \
 	template<class char_t, class T, class A>\
