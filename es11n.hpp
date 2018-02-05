@@ -17,24 +17,24 @@ using namespace std;
 	using namespace stdext;
 #endif
 
-#define EZ_S11N_THREADSAFE_LOCK
+#define ES11N_THREADSAFE_LOCK
 
 #define _AS_ |
 
-#define EZ_S11N_CUSTOM_CTOR_BASE EZ_S11N::custom_ctor_base
-#define EZ_S11N_CUSTOM_CTOR_EX(statement) public:\
+#define ES11N_CUSTOM_CTOR_BASE ES11N::custom_ctor_base
+#define ES11N_CUSTOM_CTOR_EX(statement) public:\
 	template<class T>\
 	static T s11n_custom_ctor() { statement }
-#define EZ_S11N_CUSTOM_CTOR(...) EZ_S11N_CUSTOM_CTOR_EX(return T(__VA_ARGS__);)
+#define ES11N_CUSTOM_CTOR(...) ES11N_CUSTOM_CTOR_EX(return T(__VA_ARGS__);)
 
-#define EZ_S11N(members)\
-	template<class char_t, class T> friend JSON::ValueT<char_t>& EZ_S11N::operator>>(JSON::ValueT<char_t>&, T&);\
-	template<class char_t, class T> friend JSON::ValueT<char_t>& EZ_S11N::operator<<(JSON::ValueT<char_t>&, T&);\
-	template<class char_t, class T> friend JSON::ValueT<char_t>& EZ_S11N::operator>>(T&, JSON::ValueT<char_t>&);\
-	template<class char_t, class T> friend JSON::ValueT<char_t>& EZ_S11N::operator<<(T&, JSON::ValueT<char_t>&);\
-	template<class char_t> EZ_S11N::Archive<char_t>& serialize(EZ_S11N::Archive<char_t>& json_s11n) { static EZ_S11N::Schema s(#members); json_s11n.schema(s); return json_s11n | members;}\
+#define ES11N(members)\
+	template<class char_t, class T> friend JSON::ValueT<char_t>& ES11N::operator>>(JSON::ValueT<char_t>&, T&);\
+	template<class char_t, class T> friend JSON::ValueT<char_t>& ES11N::operator<<(JSON::ValueT<char_t>&, T&);\
+	template<class char_t, class T> friend JSON::ValueT<char_t>& ES11N::operator>>(T&, JSON::ValueT<char_t>&);\
+	template<class char_t, class T> friend JSON::ValueT<char_t>& ES11N::operator<<(T&, JSON::ValueT<char_t>&);\
+	template<class char_t> ES11N::Archive<char_t>& serialize(ES11N::Archive<char_t>& json_s11n) { static ES11N::Schema s(#members); json_s11n.schema(s); return json_s11n | members;}\
 
-namespace EZ_S11N
+namespace ES11N
 {
 	using namespace JSON;
 
@@ -70,7 +70,7 @@ namespace EZ_S11N
 		    return ret;
 		}
 		Schema(const string& schema) {
-			EZ_S11N_THREADSAFE_LOCK
+			ES11N_THREADSAFE_LOCK
 
 		    string::size_type from = schema.find_first_not_of("|");
 		    string::size_type pos = 0;

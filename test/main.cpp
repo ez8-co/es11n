@@ -1,13 +1,13 @@
-#include "../ez_s11n.hpp"
+#include "../es11n.hpp"
 
 #include <iostream>
 using namespace std;
 
-using namespace EZ_S11N;
+using namespace ES11N;
 
-class Nested : EZ_S11N_CUSTOM_CTOR_BASE
+class Nested : ES11N_CUSTOM_CTOR_BASE
 {
-	EZ_S11N_CUSTOM_CTOR(0);
+	ES11N_CUSTOM_CTOR(0);
 
 public:
 	Nested(int64_t i) : x(i) {
@@ -24,7 +24,7 @@ public:
 		return x < other.x;
 	}
 	bool ctor() {return true;}
-	EZ_S11N(x _AS_ "1111"|d|b)
+	ES11N(x _AS_ "1111"|d|b)
 
 private:
 	int64_t x;
@@ -53,7 +53,7 @@ public:
 			it->print();
 		}
 	}
-	EZ_S11N(x _AS_ "sss"|dbl|b|o _AS_ "Nesteds"|ss _AS_ "test"|v|ia|m)
+	ES11N(x _AS_ "sss"|dbl|b|o _AS_ "Nesteds"|ss _AS_ "test"|v|ia|m)
 
 private:
 	int64_t x;
