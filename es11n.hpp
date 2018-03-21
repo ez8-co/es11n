@@ -17,8 +17,6 @@ using namespace std;
 	using namespace stdext;
 #endif
 
-#define ES11N_THREADSAFE_LOCK
-
 #define _AS_ |
 
 #define ES11N_CUSTOM_CTOR_BASE ES11N::custom_ctor_base
@@ -58,57 +56,15 @@ namespace ES11N
 
 	struct Schema
 	{
-		string remove(const string& str) {
-		    string ret;
-		    string::size_type from = 0, pos = 0;
-		    while ((pos = str.find("\\\n", from)) != string::npos) {
-		        ret.append(str.data() + from, pos - from);
-		        from = pos + 1;
-		    }
-		    if (from < str.length())
-		        ret.append(str.begin() + from, str.end());
-		    return ret;
-		}
 		Schema(const string& schema) {
-			ES11N_THREADSAFE_LOCK
-
-		    string::size_type from = schema.find_first_not_of("|");
-		    string::size_type pos = 0;
-
-		    while (from != string::npos) {
-		    	string tmp;
-		        pos = schema.find("|", from);
-		        if (pos != string::npos) {
-		            tmp = schema.substr(from, pos - from);
-		            from = pos + 1;
-		        }
-		        else {
-		            tmp = schema.substr(from);
-		            from = pos;
-		        }
-
-				string::size_type left = tmp.find('\"');
-				if (left != string::npos) {
-					string::size_type right = tmp.rfind('\"');
-					tmp = remove(tmp.substr(left + 1, right - left - 1));
-				}
-				else {
-				    left = tmp.find_first_not_of(" \t\r\n*&");
-				    if (left != string::npos) {
-					    string::size_type right = tmp.find_last_not_of(" \t\r\n");
-					    if (right != string::npos)
-					        tmp = remove(tmp.substr(left, right - left + 1));
-					    else
-					    	tmp = remove(tmp.substr(left));
-					}
-					else
-					    tmp = remove(tmp);
-				}
-
-		        if (!tmp.empty()) {
-		            _schemas.push_back(tmp);
-		        }
-		    }
+		    string::size_type start = 0, end = 0;
+		    do {
+		        end = schema.find('|', start);
+		        string::size_type quote = schema.find('\"', start = schema.find_first_not_of(" \t\r\n\\*&", start));
+		        _schemas.push_back(quote >= end ? 
+		        	schema.substr(start, schema.find_last_not_of(" \t\r\n\\", end - 1) - start + 1) : 
+		        	schema.substr(quote + 1, schema.rfind('\"', end - 1) - quote - 1));
+		    } while ((start = end + 1));
 		}
 		const string& index(int i) const { return _schemas[i]; }
 	private:
@@ -120,7 +76,7 @@ namespace ES11N
 	{
 		Archive(ValueT<char_t>& v, bool s) : _s(s), _index(0), _schema(0), _v(v)  {}
 		void schema(const Schema& s) 	{ _schema = &s; }
-		string next()					{ return _schema->index(_index++); }
+		const string& next()			{ return _schema->index(_index++); }
 		ValueT<char_t>& sub()			{ return _v[next()]; }
 		ValueT<char_t>& v()				{ return _v; }
 		bool store() const				{ return _s; }

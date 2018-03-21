@@ -23,7 +23,7 @@ public:
 	bool operator<(const Nested& other) const {
 		return x < other.x;
 	}
-	bool ctor() {return true;}
+
 	ES11N(x _AS_ "1111"|d|b)
 
 private:
