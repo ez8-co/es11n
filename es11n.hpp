@@ -60,9 +60,9 @@ namespace ES11N
 		    string::size_type start = 0, end = 0;
 		    do {
 		        end = schema.find('|', start);
-		        string::size_type quote = schema.find('\"', start = schema.find_first_not_of(" \t\r\n\\*&", start));
+		        string::size_type quote = schema.find('\"', start = schema.find_first_not_of(" \t\r\n*&", start));
 		        _schemas.push_back(quote >= end ? 
-		        	schema.substr(start, schema.find_last_not_of(" \t\r\n\\", end - 1) - start + 1) : 
+		        	schema.substr(start, schema.find_last_not_of(" \t\r\n", end - 1) - start + 1) : 
 		        	schema.substr(quote + 1, schema.rfind('\"', end - 1) - quote - 1));
 		    } while ((start = end + 1));
 		}
