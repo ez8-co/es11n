@@ -53,7 +53,14 @@ public:
 			it->print();
 		}
 	}
-	ES11N(x _AS_ "sss"|dbl|b|o _AS_ "Nesteds"|ss _AS_ "test"|v|ia|m)
+	ES11N(x _AS_ "sss"
+		|dbl
+		|b
+		|o _AS_ "Nesteds"
+		|ss _AS_ "test"
+		|v
+		|ia
+		|m)
 
 private:
 	int64_t x;
