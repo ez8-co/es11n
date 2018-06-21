@@ -43,12 +43,12 @@ public:
 	void print() const
 	{
 		cout << x << " " << dbl << " " <<  b << " " << ss << endl;
-		for(vector<vector<string> >::const_iterator it = v.begin(); it != v.end(); ++it) {
-			for(vector<string>::const_iterator i = it->begin(); i != it->end(); ++i) {
+		for(std::vector<std::vector<std::string> >::const_iterator it = v.begin(); it != v.end(); ++it) {
+			for(std::vector<std::string>::const_iterator i = it->begin(); i != it->end(); ++i) {
 				cout << "string[][]= " << *i << endl;
 			}
 		}
-		for(vector<Nested>::const_iterator it = o.begin(); it != o.end(); ++it) {
+		for(std::vector<Nested>::const_iterator it = o.begin(); it != o.end(); ++it) {
 			cout << "   ";
 			it->print();
 		}
@@ -66,9 +66,9 @@ private:
 	int64_t x;
 	double dbl;
 	bool b;
-	string ss;
-	vector<Nested> o;
-	vector<vector<string> > v;
+	std::string ss;
+	std::vector<Nested> o;
+	std::vector<std::vector<std::string> > v;
 	int ia[2][2];
 	map<Nested, int64_t> m;
 };
@@ -98,7 +98,7 @@ int main(int argc, char** argv)
 
 	JSON::Value v1;
 	v1 << t;
-	string s;
+	std::string s;
 	v1.write(s);
 	cout << s << endl;
 	return 0;

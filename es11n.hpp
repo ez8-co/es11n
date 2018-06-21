@@ -10,11 +10,9 @@
 	#include <forward_list>
 	#include <unordered_set>
 #endif
-using namespace std;
+
 #ifndef _WIN32
-	using namespace __gnu_cxx;
-#else
-	using namespace stdext;
+	#define stdext __gnu_cxx
 #endif
 
 #define _AS_ |
@@ -56,19 +54,19 @@ namespace ES11N
 
 	struct Schema
 	{
-		Schema(const string& schema) {
-		    string::size_type start = 0, end = 0;
+		Schema(const std::string& schema) {
+		    std::string::size_type start = 0, end = 0;
 		    do {
 		        end = schema.find('|', start);
-		        string::size_type quote = schema.find('\"', start = schema.find_first_not_of(" \t\r\n*&", start));
+		        std::string::size_type quote = schema.find('\"', start = schema.find_first_not_of(" \t\r\n*&", start));
 		        _schemas.push_back(quote >= end ? 
 		        	schema.substr(start, schema.find_last_not_of(" \t\r\n", end - 1) - start + 1) : 
 		        	schema.substr(quote + 1, schema.rfind('\"', end - 1) - quote - 1));
 		    } while ((start = end + 1));
 		}
-		const string& index(int i) const { return _schemas[i]; }
+		const std::string& index(int i) const { return _schemas[i]; }
 	private:
-		vector<string> _schemas;
+		std::vector<std::string> _schemas;
 	};
 
 	template<class char_t>
@@ -76,7 +74,7 @@ namespace ES11N
 	{
 		Archive(ValueT<char_t>& v, bool s) : _s(s), _index(0), _schema(0), _v(v)  {}
 		void schema(const Schema& s) 	{ _schema = &s; }
-		const string& next()			{ return _schema->index(_index++); }
+		const std::string& next()			{ return _schema->index(_index++); }
 		ValueT<char_t>& sub()			{ return _v[next()]; }
 		ValueT<char_t>& v()				{ return _v; }
 		bool store() const				{ return _s; }
@@ -224,16 +222,16 @@ namespace ES11N
 		return s;\
 	}
 
-	S11N_VALUE_ARRAY_CONT(vector, push_back)
-	S11N_VALUE_ARRAY_CONT(deque, push_back)
-	S11N_VALUE_ARRAY_CONT(list, push_back)
-	S11N_VALUE_ARRAY_CONT(set, insert)
-	S11N_VALUE_ARRAY_CONT(hash_set, insert)
-	S11N_VALUE_ARRAY_CONT(multiset, insert)
+	S11N_VALUE_ARRAY_CONT(std::vector, push_back)
+	S11N_VALUE_ARRAY_CONT(std::deque, push_back)
+	S11N_VALUE_ARRAY_CONT(std::list, push_back)
+	S11N_VALUE_ARRAY_CONT(std::set, insert)
+	S11N_VALUE_ARRAY_CONT(stdext::hash_set, insert)
+	S11N_VALUE_ARRAY_CONT(std::multiset, insert)
 #ifdef __XPJSON_SUPPORT_MOVE__
-	S11N_VALUE_ARRAY_CONT(forward_list, push_back)
-	S11N_VALUE_ARRAY_CONT(unordered_set, insert)
-	S11N_VALUE_ARRAY_CONT(unordered_multiset, insert)
+	S11N_VALUE_ARRAY_CONT(std::forward_list, push_back)
+	S11N_VALUE_ARRAY_CONT(std::unordered_set, insert)
+	S11N_VALUE_ARRAY_CONT(std::unordered_multiset, insert)
 #endif
 
 	template<class char_t, class T, size_t M>
@@ -316,11 +314,11 @@ namespace ES11N
 		return s;\
 	}
 
-	S11N_VALUE_KV_CONT(map)
-	S11N_VALUE_KV_CONT(multimap)
-	S11N_VALUE_KV_CONT(hash_map)
+	S11N_VALUE_KV_CONT(std::map)
+	S11N_VALUE_KV_CONT(std::multimap)
+	S11N_VALUE_KV_CONT(stdext::hash_map)
 #ifdef __XPJSON_SUPPORT_MOVE__
-	S11N_VALUE_KV_CONT(unordered_map)
-	S11N_VALUE_KV_CONT(unordered_multimap)
+	S11N_VALUE_KV_CONT(std::unordered_map)
+	S11N_VALUE_KV_CONT(std::unordered_multimap)
 #endif
 }
