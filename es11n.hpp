@@ -1,3 +1,11 @@
+/*
+  es11n -- An easy serialization library for C++..
+
+  Copyright (c) 2010-2017 <http://ez8.co> <orca.zhang@yahoo.com>
+  This library is released under the MIT License.
+
+  Please see LICENSE file or visit https://github.com/ez8-co/es11n for details.
+ */
 #include "xpjson.hpp"
 #include <vector>
 #include <list>
@@ -35,17 +43,17 @@ namespace ES11N
 	using namespace JSON;
 
 	struct custom_ctor_base{};
-	template <typename Base, typename Derived>
+	template <typename B, typename D>
 	struct is_base_of
 	{
 	    template <typename T>
-	    static char helper(Derived, T);
-	    static int helper(Base, int);
-	    struct Conv {
-	        operator Derived();
-	        operator Base() const;
+	    static char helper(D*, T);
+	    static int helper(B*, int);
+	    struct conv {
+	        operator D*();
+	        operator B*() const;
 	    };
-	    static const bool value = sizeof(helper(Conv(), 0)) == 1;
+	    static const bool value = sizeof(helper(conv(), 0)) == 1;
 	};
 	template<class T, bool custom = false>
 	struct s11n_ctor { static T ctor() { return T(); } };
