@@ -149,7 +149,7 @@ namespace ES11N
 	S11N_HELPER_ARITHMETIC(signed short)
 	S11N_HELPER_ARITHMETIC(unsigned int)
 	S11N_HELPER_ARITHMETIC(signed int)
-#if (defined (__GNUC__) && !defined(__x86_64__)) || (defined(_WIN32) && !defined(_WIN64))
+#if (defined (__GNUC__) && !defined(__x86_64__) && !defined(__aarch64__)) || (defined(_WIN32) && !defined(_WIN64))
 	S11N_HELPER_ARITHMETIC(unsigned long)
 	S11N_HELPER_ARITHMETIC(signed long)
 #endif
@@ -191,7 +191,7 @@ namespace ES11N
 	S11N_VALUE(signed short, 0)
 	S11N_VALUE(unsigned int, 0)
 	S11N_VALUE(signed int, 0)
-#if (defined (__GNUC__) && !defined(__x86_64__)) || (defined(_WIN32) && !defined(_WIN64))
+#if (defined (__GNUC__) && !defined(__x86_64__) && !defined(__aarch64__)) || (defined(_WIN32) && !defined(_WIN64))
 	S11N_VALUE(unsigned long, 0)
 	S11N_VALUE(signed long, 0)
 #endif
